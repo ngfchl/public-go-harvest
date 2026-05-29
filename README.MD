@@ -484,6 +484,7 @@ http://127.0.0.1:5173/swagger
 - `nickname`：显示名称。
 - `mirror`：站点访问地址。
 - `cookie`：站点 Cookie。
+- `local_storage`：站点 LocalStorage 信息。
 - `user_agent`：浏览器 UA。
 - `user_id`：站点用户 ID，部分站点抓取个人信息需要。
 - `passkey` / `authkey`：下载链接或特殊接口需要。
