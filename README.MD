@@ -121,6 +121,8 @@ LOGGER_STDOUT=true
 
 AUTO_UPDATE=false
 AUTO_UPDATE_TAG=upgrade_all
+AUTO_SPEEDTEST=false
+USE_CUSTOM_HOSTS=false
 GIT_PROXY=https://gh-proxy.org/
 
 HARVEST_MEMORY_LIMIT=
@@ -336,6 +338,8 @@ LOGGER_LEVEL=info
 LOGGER_STDOUT=true
 AUTO_UPDATE=false
 AUTO_UPDATE_TAG=upgrade_all
+AUTO_SPEEDTEST=false
+USE_CUSTOM_HOSTS=false
 GIT_PROXY=https://gh-proxy.org/
 
 HARVEST_MEMORY_LIMIT=
@@ -359,6 +363,8 @@ REDIS_MAXMEMORY_POLICY=allkeys-lru
 - `EMAIL` 和 `TOKEN` 是启动授权必需变量。
 - `POSTGRES_HOST`、`POSTGRES_PORT`、`POSTGRES_DB`、`POSTGRES_USER`、`POSTGRES_PASSWORD` 只在 PostgreSQL 部署时需要。
 - `AUTO_UPDATE` 控制容器启动时是否自动执行更新，`AUTO_UPDATE_TAG` 控制更新范围。
+- `AUTO_SPEEDTEST` 控制容器启动时是否自动执行 CloudFlare 测速并应用测速后的 hosts；开启时优先于 `USE_CUSTOM_HOSTS`。
+- `USE_CUSTOM_HOSTS` 控制容器启动时是否直接应用 `db/hosts/hosts`；手动测速和测速任务不受该开关限制。
 - `GIT_PROXY` 用于 GitHub 资源更新。
 - `HARVEST_MEMORY_LIMIT` 可限制 Go 运行时内存目标；留空表示不额外设置。
 - `HARVEST_GOGC` 控制 Go GC 触发比例，默认 `80`。
