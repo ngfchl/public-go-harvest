@@ -816,9 +816,21 @@ Asia/Shanghai
 
 ## 10. 通知和消息历史
 
+通知服务通过 `notice.SendText(ctx, title, message, url...)` 统一发送消息。`message` 可以是字符串、Map 或 Slice；服务会自动整理为 Markdown，并保存到 `option_noticehistory`。
+
+发送行为：
+
+- 启用的通知渠道会并发发送。
+- 配置读取自 `option_option` 表。
+- 配置名为渠道名，`value` 为 JSON 字符串。
+- 长消息会按渠道限制自动分段。
+- 部分渠道失败时会返回“部分通知发送失败”，但其他渠道仍会继续发送。
+
 支持的通知渠道：
 
-- 企业微信：`wechat_work_push`
+- 企业微信应用通知：`wechat_work_push`
+- 微信 iLink Bot：`wechat_bot_push`
+- QQBot：`qqbot_push`
 - WxPusher：`wxpusher_push`
 - PushDeer：`pushdeer_push`
 - Server 酱：`server_chan_push`
@@ -828,16 +840,83 @@ Asia/Shanghai
 - PushPlus：`pushplus_push`
 - 喵呜通知：`meow_push`
 
-通知配置存储在 `option_option` 表中，配置名通常为对应渠道名，配置值为 JSON。
+### 通知配置示例
 
-Telegram 示例：
+企业微信应用通知 `wechat_work_push`：
 
 ```json
 {
-  "telegram_token": "bot_token",
-  "telegram_chat_id": "chat_id",
+  "corp_id": "企业ID",
+  "agent_id": 1000001,
+  "corpsecret": "应用Secret",
+  "token": "回调Token",
+  "refresh_token": "回调EncodingAESKey"
+}
+```
+
+微信 iLink Bot `wechat_bot_push`：
+
+```json
+{
+  "token": "机器人Token",
+  "to_uid": "接收人to_user_id",
+  "refresh_token": "context_token，可选"
+}
+```
+
+说明：
+
+- `baseUrl` 固定为 `https://ilinkai.weixin.qq.com`，前端不需要传。
+- `token` 优先；兼容旧字段 `Token`、`access_token`。
+- `to_uid` 优先；兼容旧字段 `uids`、`target`、`to_user_id`。
+- `refresh_token` 用作微信 iLink `context_token`；兼容旧字段 `context_token`。
+
+QQBot `qqbot_push`（直连 QQ 机器人 OpenAPI，默认 Markdown）：
+
+```json
+{
+  "app_id": "机器人AppID",
+  "secret_key": "机器人Secret",
+  "uids": "用户OpenID"
+}
+```
+
+说明：
+
+- `uids` 用于 C2C 用户 OpenID。
+- `group_openid` 用于群消息。
+- `channel_id` 用于频道子频道消息。
+- 已有 `access_token` 时可替代 `secret_key`。
+- `server` / `base_url` 可覆盖 API 根地址，默认 `https://api.sgroup.qq.com`。
+
+Telegram `telegram_push`：
+
+```json
+{
+  "telegram_token": "Bot Token",
+  "telegram_chat_id": "Chat ID",
   "parse_mode": "Markdown",
   "proxy": "http://127.0.0.1:7890"
+}
+```
+
+其他渠道字段：
+
+- `wxpusher_push`：`app_token`、`uids`。
+- `pushdeer_push`：`push_key`、`server` 可选。
+- `server_chan_push`：`send_key`。
+- `bark_push`：`server`、`device_key`、`sound` 可选。
+- `iyuu_push`：`token`、`proxy` 可选。
+- `pushplus_push`：`token`、`template` 可选，默认 Markdown。
+- `meow_push`：`token`、`key` 可选、`server` 可选、`maxCount` 可选。
+
+通知配置创建示例：
+
+```json
+{
+  "name": "qqbot_push",
+  "value": "{\"app_id\":\"机器人AppID\",\"secret_key\":\"机器人Secret\",\"uids\":\"用户OpenID\"}",
+  "remark": "QQBot通知"
 }
 ```
 
@@ -870,7 +949,7 @@ GET /api/option/test?title=测试&content=这是一条测试通知
 - `tmdb_api_auth`：TMDB API 配置。
 - `notice_category_enable`：通知分类开关。
 - `notice_content_item`：通知内容字段开关。
-- 各通知渠道配置，如 `telegram_push`。
+- 各通知渠道配置，如 `telegram_push`、`qqbot_push`。
 - Cookie 导入配置，如 CookieCloud、PTPP、PTD 相关配置。
 
 ## 12. TMDB 和豆瓣
