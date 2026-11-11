@@ -680,7 +680,64 @@ WebUI 通常使用 WebSocket / SSE 搜索能力，适合实时展示各站点搜
 - `GET /api/option/downloaders/trackers/{downloader_id}` 获取 Tracker。
 - `PUT /api/option/downloaders/trackers/replace/{downloader_id}` 替换 Tracker。
 
-### 7.3 WebSocket 状态
+### 7.3 qBittorrent RSS 管理
+
+以下接口仅对 `category=Qb` 的下载器生效，路径中的 `downloader_id` 为下载器 ID：
+
+- `GET /api/option/downloaders/rss/{downloader_id}?with_data=true` 获取 RSS 文件夹、源和文章。
+- `POST /api/option/downloaders/rss/folders/{downloader_id}` 创建 RSS 文件夹。
+- `POST /api/option/downloaders/rss/feeds/{downloader_id}` 添加 RSS 源。
+- `PUT /api/option/downloaders/rss/feeds/{downloader_id}` 更新 RSS 源地址。
+- `DELETE /api/option/downloaders/rss/item/{downloader_id}` 删除 RSS 文件夹或源。
+- `PUT /api/option/downloaders/rss/item/move/{downloader_id}` 移动 RSS 条目。
+- `POST /api/option/downloaders/rss/item/refresh/{downloader_id}` 刷新 RSS 条目。
+- `POST /api/option/downloaders/rss/item/read/{downloader_id}` 标记文章已读。
+- `GET /api/option/downloaders/rss/rules/{downloader_id}` 获取自动下载规则。
+- `PUT /api/option/downloaders/rss/rules/{downloader_id}` 创建或更新自动下载规则。
+- `PUT /api/option/downloaders/rss/rules/rename/{downloader_id}` 重命名自动下载规则。
+- `DELETE /api/option/downloaders/rss/rules/{downloader_id}/{rule_name}` 删除自动下载规则。
+- `GET /api/option/downloaders/rss/rules/matching/{downloader_id}/{rule_name}` 预览规则匹配文章。
+- `PUT /api/option/downloaders/rss/auto-download/{downloader_id}?enabled=true` 开关自动下载。
+- `PUT /api/option/downloaders/rss/processing/{downloader_id}?enabled=true` 开关 RSS 处理。
+
+规则请求体使用 qBittorrent WebUI 字段，例如：
+
+```json
+{
+  "rule_name": "电影 1080p",
+  "rule": {
+    "enabled": true,
+    "mustContain": "1080p",
+    "mustNotContain": "CAM",
+    "affectedFeeds": ["电影"],
+    "torrentParams": {
+      "category": "Movie",
+      "save_path": "/downloads/Movie"
+    }
+  }
+}
+```
+
+### 7.4 Harvest RSS 订阅
+
+Go Harvest 提供与原 Harvest 项目一致的 RSS 源、订阅方案、订阅和历史管理能力：
+
+- `GET/POST /api/option/rss/feeds`、`GET/PUT/DELETE /api/option/rss/feeds/{id}` 管理 RSS 源。
+- `GET /api/option/rss/feeds/{id}/preview` 解析并预览 RSS 条目。
+- `POST /api/option/rss/feeds/{id}/refresh` 强制刷新 RSS 源。
+- `GET/POST /api/option/rss/tags`、`GET/PUT/DELETE /api/option/rss/tags/{id}` 管理订阅标签。
+- `GET /api/option/rss/tags/import` 导入内置默认订阅标签。
+- `GET/POST /api/option/rss/plans`、`GET/PUT/DELETE /api/option/rss/plans/{id}` 管理订阅方案。
+- `GET/POST /api/option/rss/subscriptions`、`GET/PUT/DELETE /api/option/rss/subscriptions/{id}` 管理订阅。
+- `GET /api/option/rss/history`、`PUT /api/option/rss/history/{id}/push` 管理推送历史。
+- `POST /api/option/rss/run` 执行全部订阅，`POST /api/option/rss/run/{subscription_id}` 执行单个订阅。
+- `POST /api/option/rss/subscriptions/{id}/preview` 预览订阅匹配结果，不推送种子。
+
+订阅方案支持关键字、排除关键字、季数、年份、分辨率、编码、来源、制作组、大小范围、豆瓣 ID、下载器分类和保存路径等过滤条件；成功推送后会记录历史，无季数的一次性订阅会自动禁用。调度器任务名：`RSS订阅`（兼容名 `celery.RSS订阅`）。
+
+RSS 源按 `refresh_interval` 复用缓存，同一源被多个订阅引用时只请求一次；可通过 `HARVEST_RSS_SUBSCRIPTION_CONCURRENCY` 控制批量订阅并发度，默认 `3`，上限 `16`。
+
+### 7.5 WebSocket 状态
 
 - `GET /api/ws/downloader?downloader_id=1` 下载器主数据。
 - `GET /api/ws/downloader/speed?downloader_id=1` 下载器速度。
@@ -1395,7 +1452,50 @@ GIT_PROXY=https://gh-proxy.org/
 - `<infohash>` 文件名是否为 40 位十六进制字符串。
 - Go Harvest 容器是否有权限读取这些文件。
 
-## 17. 本地开发
+## 17. AI 管理助手
+
+AI 管理助手已接入 `/api/ai`，当前支持：
+
+- Provider 配置：OpenAI 兼容接口和本地 Ollama。
+- 自然语言查询项目状态。
+- 只读状态快照和 AI 回答。
+- Token 用量查询和每日额度保护。
+- API Key 按明文保存和展示，适合本地部署使用。
+
+配置接口：
+
+- `GET /api/ai/providers` 获取 AI 配置。
+- `PUT /api/ai/providers` 保存 AI 配置。
+- `POST /api/ai/providers/test` 测试 Provider。
+- `POST /api/ai/assistant/chat` AI 管理助手问答。
+- `GET /api/ai/assistant/history` 获取 AI 聊天历史，按天加载并支持游标分页。
+- `GET /api/ai/assistant/history/dates` 获取 AI 聊天历史日期列表。
+- `GET /api/ai/usage` 查看 Token 用量。
+- `POST /api/ai/diagnostics/run` 运行站点、下载器、RSS 和任务状态诊断。
+- `GET /api/ai/downloaders/analysis` 分析下载器在线状态和种子运行状态。
+- AI 助手询问下载器、种子、做种或上传状态时，会返回 `downloader_reports` 表格数据。
+
+保存配置示例：
+
+```json
+{
+  "enabled": true,
+  "provider": "openai",
+  "base_url": "https://api.example.com/v1",
+  "api_key": "sk-...",
+  "model": "gpt-4o-mini",
+  "temperature": 0.2,
+  "max_tokens": 2048,
+  "timeout_seconds": 60,
+  "daily_token_limit": 100000,
+  "concurrency": 3,
+  "allow_write_actions": false
+}
+```
+
+当前 AI 默认只读，只读取站点、下载器、计划任务、RSS 和任务结果的脱敏状态快照，不执行删除、推送或更新操作。下载器在线状态通过连接检测实时判断，不以配置中的启用状态代替在线状态。站点分析只展开启用站点，禁用站点仅统计数量。诊断任务也可通过计划任务 `AI 状态诊断` 执行。
+
+## 18. 本地开发
 
 本地运行：
 
@@ -1426,7 +1526,7 @@ http://127.0.0.1:8000/swagger
 - 如果 `templates/index.html` 存在，Go 服务会直接挂载 WebUI。
 - 否则只提供 API 和 `/setup` 初始化页面。
 
-## 18. 目录说明
+## 19. 目录说明
 
 常用目录：
 
@@ -1453,6 +1553,7 @@ internal/service         业务服务
 internal/service/ptspider PT 站点抓取、签到、搜索
 internal/service/downloader 下载器集成
 internal/service/scheduler 任务系统
+internal/service/ai AI Provider、助手和用量管理
 manifest/docker          Docker 镜像和容器启动配置
 manifest/sql             PostgreSQL 初始化 SQL
 manifest/sql/sqlite      SQLite 初始化 SQL
